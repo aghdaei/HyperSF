@@ -203,7 +203,7 @@ function he_cluster14(idx::Array{Int64,1}, ar::Array{Any,1}, Hscore::Array{Float
 
     ratio = 2
 
-    val = 1
+    val = 0
 
     MX = maximum(Hscore);
 
