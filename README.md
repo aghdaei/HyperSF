@@ -3,7 +3,7 @@ Spectral Hypergraph Coarsening
 
 Code for
 
-HyperSF: Spectral Hypergraph Coarsening viaFlow-based Local Clustering
+HyperSF: Spectral Hypergraph Coarsening via Flow-based Local Clustering
 
 Ali Aghdaei, Zhiqiang Zhao, Zhuo Feng
 
