@@ -302,7 +302,7 @@ end#function
 # Output: an array showing the hyperedges belong to each node
 function HyperNodes(ar)
 
-    H = INC3(ar)
+    H = INC(ar)
 
     NH1 = Any[]
 
@@ -327,7 +327,7 @@ end
 
 ## Write the output matrix in hMETIS format
 function Whgr(input, ar)
-    mx = mx_func(ar)
+    mx = mxF(ar)
     open(input,"w")do io
         println(io, length(ar)," ", mx)
         for i =1:length(ar)
