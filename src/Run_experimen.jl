@@ -1,4 +1,3 @@
-cd("/Users/aliaghdaei/Desktop/HyperSF-main/src")
 using SparseArrays
 using LinearAlgebra
 using Clustering
