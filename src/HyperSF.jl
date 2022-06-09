@@ -13,6 +13,9 @@ function HyperSF(Inp)
         ## constructing the incidence matrix corresponding to the original hypergraph
         H = INC(ar)
 
+        ## finding the hyperedges belonging to each node
+        NH = HyperNodes(ar)
+
         ## find the number of nodes in hypergraph
         mx = mxF(ar)
 
@@ -22,10 +25,10 @@ function HyperSF(Inp)
         ## converting hypergraph to simple graph using Star expansion
         MM = Star(ar)
 
-        ## parameters 
+        ## parameters
         # changing these parameters allow you to generate different rresults
         szT = 10
-        
+
         grow_lvl = 2
 
         grownum = 100
@@ -147,7 +150,7 @@ function HyperSF(Inp)
             Rmore = BestNeighbors(IM,d,seedN2,OneHop,grownum)
             R = union(Rmore,seedN2)
 
-            Rs = FD3(x->in(x,seedN2),R)  #Force
+            Rs = findall(x->in(x,seedN2),R)  #Force
 
             S, lcond = HyperLocal(IM,IMt,order,d,R,epsilon,delta,Rs,true)
 
@@ -264,7 +267,7 @@ function HyperSF(Inp)
         ar = ar_new
 
 
-    end 
+    end
 
     return ar
-end 
+end
