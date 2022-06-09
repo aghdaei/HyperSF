@@ -1,4 +1,5 @@
-
+## Input: input dataset in hMetis format
+# Outout: hypergraph array
 function ReadInp(input)
 
     io = open(input, "r")
@@ -23,7 +24,7 @@ function ReadInp(input)
 
 end #end of function
 
-## The input is the hypergraph array
+## Input: hypergraph array
 # Outout: sparse incidence matrix
 function INC(ar)
 
@@ -66,7 +67,7 @@ function mxF(ar)
 
 end
 
-## Input hypergraph array
+## Input: hypergraph array
 # Output: sparse simple graph
 function Star(ar)
 
