@@ -1,10 +1,9 @@
-## Function to read inout and list the nodes belong to each hyperedge
 
 function ReadInp(input)
 
     io = open(input, "r")
-    ar  = Any[]
 
+    ar  = Any[]
     while !eof(io)
         rr = zeros(Int, 0)
         ln = readline(io)
@@ -24,38 +23,14 @@ function ReadInp(input)
 
 end #end of function
 
-
-# list the hyperedges belong to each node
-function HyperNodes(ar::Array{Any,1})
-
-    H = INC3(ar)
-
-    NH1 = Any[]
-
-    rr1 = H.rowval
-
-    cc1 = H.colptr
-
-    for i = 1:size(H, 2)
-
-        st = cc1[i]
-
-        ed = cc1[i+1] - 1
-
-        push!(NH1, rr1[st:ed])
-
-    end
-
-    return NH1
-
-end
-
-
-# create the incidence matrix of the input hypergraph
-function INC3(ar::Array{Any,1})
+## The input is the hypergraph array
+# Outout: sparse incidence matrix
+function INC(ar)
 
     col = zeros(Int, 0)
     row = zeros(Int, 0)
+
+
 
     for iter = 1:length(ar)
         cc = (iter) * ones(Int, length(ar[iter]))
@@ -74,8 +49,9 @@ function INC3(ar::Array{Any,1})
     return mat
 end
 
-# find the maximum value in the array
-function mx_func(ar::Array{Any,1})
+## Input: hypergraph array
+# Output: number of nodes in hypergraph
+function mxF(ar)
 
     mx2 = Int(0)
     aa = Int(0)
@@ -86,15 +62,15 @@ function mx_func(ar::Array{Any,1})
     	aa = mx2
 
     end
-
     return mx2
 
 end
 
-# convert the hypergraph to asimple graph applying Star expansion
-function Star(ar::Array{Any,1})
+## Input hypergraph array
+# Output: sparse simple graph
+function Star(ar)
 
-    mx = mx_func(ar)
+    mx = mxF(ar)
 
     sz = length(ar)
 
@@ -123,8 +99,9 @@ function Star(ar::Array{Any,1})
 
 end
 
-# Filter high frequency components of the input vectors
-function Filter(sm_vec::Array{Float64,2}, k::Int64, AD::SparseMatrixCSC{Float32,Int32}, mx::Int64)
+## Input: a set of random vectors, smoothing steps, star matrix, number of nodes
+# Output: a set of smoothed vectors
+function Filter(sm_vec, k, AD, mx)
 
     N = size(sm_vec, 2);
 
@@ -146,6 +123,12 @@ function Filter(sm_vec::Array{Float64,2}, k::Int64, AD::SparseMatrixCSC{Float32,
 
         sm = sm_vec[:, iter]
 
+        on = ones(Int, length(sm))
+
+        sm_ot = sm - ((dot(sm, on) / dot(on, on)) * on)
+
+        sm = sm_ot ./ norm(sm_ot);
+
         for loop in 1:k
 
             sm = D * sm
@@ -160,11 +143,10 @@ function Filter(sm_vec::Array{Float64,2}, k::Int64, AD::SparseMatrixCSC{Float32,
 
         on = ones(Int, mx)
 
-        #Make all the eigenvectors orthogonal to all 1 vectors
         sm_ot = sm - ((dot(sm, on) / dot(on, on)) * on)
 
-        # Normalization
         sm_norm = sm_ot ./ norm(sm_ot);
+        #sm_norm = sm_ot ./ maximum(broadcast(abs, sm_ot))
 
         V[: , iter] = sm_norm;
 
@@ -177,9 +159,10 @@ function Filter(sm_vec::Array{Float64,2}, k::Int64, AD::SparseMatrixCSC{Float32,
 
 end #end of function
 
-# compute the hyperedge scores using non-linear quadratic form
-# max function (without mediators)
-function h_score3(ar::Array{Any,1}, SV::Array{Float64,2})
+
+## Input: hypergraph array, and a set of smoothed vectors
+# Output: hyperedge scores
+function HSC(ar, SV)
     score = zeros(eltype(SV), length(ar))
     @inbounds Threads.@threads for i in eachindex(ar)
         nodes = ar[i]
@@ -196,16 +179,15 @@ function h_score3(ar::Array{Any,1}, SV::Array{Float64,2})
     return score
 end
 
+## Input: hypergraph array, a set of smoothed vectors
+# Output: a vector of node indices
+function HEC(ar, SV)
 
-# k-mean clustering inside each hyperedge using
-#the spectral simple graph (star graph) embeddings
-function he_cluster14(idx::Array{Int64,1}, ar::Array{Any,1}, Hscore::Array{Float64,1}, SV::Array{Float64,2}, mx::Int64)
+    mx = mxF(ar)
 
     ratio = 2
 
     val = 0
-
-    MX = maximum(Hscore);
 
     M = length(ar)
 
@@ -221,8 +203,6 @@ function he_cluster14(idx::Array{Int64,1}, ar::Array{Any,1}, Hscore::Array{Float
 
     flag = falses(1, mx)
 
-    FE = falses(M)
-
     ## node clustering
 
     ss = zeros(Int, 0)
@@ -233,7 +213,14 @@ function he_cluster14(idx::Array{Int64,1}, ar::Array{Any,1}, Hscore::Array{Float
 
     end
 
-    E = sortperm(ss, rev=true)
+    highE = sort(ss, rev = true)
+
+    fd1 = findall(x->x > 0, highE)
+
+    Epos = sortperm(ss, rev=true)
+
+    E = Epos[fd1]
+
 
     for iter2 = 1:length(E)
 
@@ -252,11 +239,53 @@ function he_cluster14(idx::Array{Int64,1}, ar::Array{Any,1}, Hscore::Array{Float
 
             idx_clus = R.assignments
 
-            idx_new[node] = idx_clus .+ val;
+            ############ Counting the size of each clustering
+            string_count = StatsBase.countmap(idx_clus)
 
-            flag[node] .= 1
+            ks = collect(keys(string_count))
 
-            val = val + maximum(idx_clus);
+            vls = collect(values(string_count))
+
+            fd1 = findall(x->x==1, vls)
+
+            ############# end of counting cluster size
+
+            ### removing the single nodes
+            fd2 = findall(x-> in(x, ks[fd1]), idx_clus)
+
+            deleteat!(idx_clus, fd2)
+
+            deleteat!(node, fd2)
+            ############ end of removing
+
+            if length(idx_clus) > 0
+
+                ### rearranging the cluster indices
+                val3 = 1
+
+                idx_clus2 = zeros(Int, length(idx_clus))
+
+                UN = unique(idx_clus)
+
+                for jj = 1:length(UN)
+
+                    fd3 = findall(x->x==UN[jj], idx_clus)
+
+                    idx_clus2[fd3] .= val3
+
+                    val3 += 1
+
+                end # for jj
+
+                #### end of rearranging the cluster indices
+
+                idx_new[node] = idx_clus2 .+ val
+
+                flag[node] .= 1
+
+                val = val + maximum(idx_clus2)
+
+            end # end if length of the cluster
 
         end # end if length(node) > 1
 
@@ -267,20 +296,35 @@ function he_cluster14(idx::Array{Int64,1}, ar::Array{Any,1}, Hscore::Array{Float
 
 end#function
 
-# finding non-unique clusters
-function nonunique2!(x::AbstractArray{T}) where T
-    x = sort(x)
-    duplicatedvector = T[]
-    for i=2:length(x)
-        if (isequal(x[i],x[i-1]) && (length(duplicatedvector)==0 || !isequal(duplicatedvector[end], x[i])))
-            push!(duplicatedvector,x[i])
-        end
+
+## Input: hypergraph array
+# Output: an array showing the hyperedges belong to each node
+function HyperNodes(ar)
+
+    H = INC3(ar)
+
+    NH1 = Any[]
+
+    rr1 = H.rowval
+
+    cc1 = H.colptr
+
+    for i = 1:size(H, 2)
+
+        st = cc1[i]
+
+        ed = cc1[i+1] - 1
+
+        push!(NH1, rr1[st:ed])
+
     end
-    duplicatedvector
+
+    return NH1
+
 end
 
-    
-# Write the output matrix in hMETIS format
+
+## Write the output matrix in hMETIS format
 function Whgr(input, ar)
     mx = mx_func(ar)
     open(input,"w")do io
