@@ -10,7 +10,7 @@ include("HyperSF.jl")
 
 Input = "../data/ibm01.hgr"
 
-ar_coarse = HyperSF(Input, CndT)
+ar_coarse = HyperSF(Input)
 
 # The incidence matrix corresponding to the coarsened hypergraph
 H = INC3(ar_coarse)
