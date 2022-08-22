@@ -1,7 +1,5 @@
 # HyperSF
-Spectral Hypergraph Coarsening 
-
-Code for
+Spectral Hypergraph Coarsening Code for
 
 HyperSF: Spectral Hypergraph Coarsening via Flow-based Local Clustering
 
