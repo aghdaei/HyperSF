@@ -1,13 +1,6 @@
-
 using SparseArrays
+using MatrixNetworks
 using LinearAlgebra
-using Clustering
-using NearestNeighbors
-using Distances
-using Laplacians
-using Statistics
-using DelimitedFiles
-using StatsBase
 using Random
 
 include("HyperSF.jl")
