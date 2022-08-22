@@ -1,8 +1,8 @@
 function HyperSF(Inp, L, R)
-
+    
+    cd("../data/")
     ar = ReadInp(Inp)
-    ar_org = copy(ar)
-    mx = mxF(ar_org)
+    cd("../src/")
 
     ## Decomposition
     ar_new, idx_mat, SV = decomposition(ar, L)
@@ -171,79 +171,6 @@ function HyperSF(Inp, L, R)
 
     end # for ii
 
-
-    ## global conductance
-
-    ar = ar_org
-
-    NH = HyperNodes(ar)
-
-    H = INC(ar)
-
-    order = vec(round.(Int, sum(H, dims = 2)))
-
-    vol_V = vec(round.(Int, sum(H, dims = 1)))
-
-    global Cvec = zeros(Float64, 0)
-
-
-    dict = Dict{Any, Any}()
-
-    count = 0
-    @inbounds for jj =1:length(idx1)
-
-        vals = get!(Vector{Int}, dict, idx1[jj])
-
-        push!(vals, jj)
-
-    end # for jj
-
-    KS = collect(keys(dict))
-
-    VL = collect(values(dict))
-
-    global szCL_HE = zeros(Int, length(VL))
-
-    ndV = collect(1:mxF(ar))
-
-    @inbounds for ii = 1:length(KS)
-
-        S = VL[ii]
-
-        szCL_HE[ii] = length(S)
-
-        ct = tl_cut(H, vec(S), 1.0, order)
-
-        vol1 = sum(vol_V[S])
-
-        S_hat = deleteat!(ndV, S)
-
-        vol2 = sum(vol_V[S_hat])
-
-        cnd = ct / vol1
-
-        push!(Cvec, cnd)
-
-        ndV = collect(1:mxF(ar))
-
-
-    end # for ii
-
-
-    NR = (mx_org - maximum(idx1)) / mx_org *100
-
-    #ER = (LN_org - length(ar_new)) / LN_org *100
-
-    println("NR = ", NR)
-
-    #println("ER = ", ER)
-
-    println("average conductance: ", round(mean(Cvec), digits=2))
-
-
-    #Whgr("ibm05_t1.hgr", ar_new)
-
     return idx1
-
 
 end # function
