@@ -100,15 +100,17 @@ function Star(ar)
 
 end
 
-## Input: a set of random vectors, smoothing steps, star matrix, number of nodes
+## Input: a set of random vectors, smoothing steps, star matrix, number of nodes in hypergraph
+# index of the first selected smoothed vector, interval among the selected smoothed vectors, total number of smoothed vectors
 # Output: a set of smoothed vectors
-function Filter(sm_vec, k, AD, mx)
+function Filter(rv, k, AD, mx, initial, interval, Ntot)
 
-    N = size(sm_vec, 2);
-
+    
     sz = size(AD, 1)
 
-    V = zeros(mx, N);
+    V = zeros(mx, Ntot);
+
+    sm_vec = zeros(mx, k);
 
     AD = AD .* 1.0
 
@@ -120,45 +122,36 @@ function Filter(sm_vec, k, AD, mx)
 
     D = sparse(I2, I2, sparsevec(dg))
 
-    for iter in 1:N
+    on = ones(Int, length(rv))
 
-        sm = sm_vec[:, iter]
+    sm_ot = rv - ((dot(rv, on) / dot(on, on)) * on)
 
-        on = ones(Int, length(sm))
+    sm = sm_ot ./ norm(sm_ot);
 
-        sm_ot = sm - ((dot(sm, on) / dot(on, on)) * on)
+    count = 1
 
-        sm = sm_ot ./ norm(sm_ot);
+    for loop in 1:k
 
-        for loop in 1:k
+        sm = D * sm
 
-            sm = D * sm
+        sm = AD * sm
 
-            sm = AD * sm
-
-            sm = D * sm
-
-        end
-
-        sm = sm[1:mx]
-
-        on = ones(Int, mx)
+        sm = D * sm
 
         sm_ot = sm - ((dot(sm, on) / dot(on, on)) * on)
 
         sm_norm = sm_ot ./ norm(sm_ot);
-        #sm_norm = sm_ot ./ maximum(broadcast(abs, sm_ot))
 
-        V[: , iter] = sm_norm;
+        sm_vec[:, loop] = sm_norm[1:mx]
 
-    end
+    end # for loop
 
-    AD[diagind(AD, 0)] .= 0
-    AD = dropzeros!(AD)
+    V = sm_vec[:, interval:interval:end]
 
     return V
 
 end #end of function
+
 
 
 ## Input: hypergraph array, and a set of smoothed vectors
