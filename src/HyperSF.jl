@@ -7,10 +7,11 @@ include("../include/maxflow.jl")
 function HyperSF(Inp, L, R)
 
     ar = ReadInp(Inp)
+    ar_org = copy(ar)
+    mx = mxF(ar_org)
 
     ## Decomposition
-    println("------------Decomposition Time -----------")
-    @time ar_new, idx_mat, SV = decomposition_SF2(ar, L)
+    ar_new, idx_mat, SV = decomposition_SF2(ar, L)
 
     idx = idx_mat[end]
     ## Computing the effective resistance diameter of clusters and sort them
