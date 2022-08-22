@@ -10,8 +10,12 @@ using DelimitedFiles
 using StatsBase
 using Random
 
-
 include("HyperSF.jl")
+include("Functions.jl")
+include("../include/HyperLocal.jl")
+include("../include/Helper_Functions.jl")
+include("../include/maxflow.jl")
+
 
 filename = "ibm01.hgr"
 
