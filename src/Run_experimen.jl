@@ -12,7 +12,7 @@ include("../include/maxflow.jl")
 
 filename = "ibm01.hgr"
 
-## L controls the coarsening ratio by applying L-levels of k-mean clustering
+## L: is an integer (L>0) to adjust the initial coarsening ratio before applying the flow-based technique.
 L = 4
 
 ## R adjusts the ratio of selected clusters (low-quality clusters)
