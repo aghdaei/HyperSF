@@ -29,7 +29,7 @@ Run "Run_experiment.jl" to generate the coarsened hypergraph for the availble te
 The input format is in the format of hMetis that is every line corresponds to each hyperedge.
 The first line: #hyperedges, #nodes.
 
-L: is an integer to adjust the initial coarsening ratio before applying the flow-based technique 
+L: is an integer (L>0) to adjust the initial coarsening ratio before applying the flow-based technique 
 
 R: the ratio of selected clusters (low-quality clusters) for applying the flow-based technique (0<R<=1).
 
