@@ -1,9 +1,3 @@
-include("Functions.jl")
-include("../include/HyperLocal.jl")
-include("../include/Helper_Functions.jl")
-include("../include/maxflow.jl")
-
-
 function HyperSF(Inp, L, R)
 
     ar = ReadInp(Inp)
