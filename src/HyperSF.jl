@@ -3,177 +3,143 @@ include("../include/HyperLocal.jl")
 include("../include/Helper_Functions.jl")
 include("../include/maxflow.jl")
 
-function HyperSF(Inp)
 
-    ## Reading the input hypergraph
+function HyperSF(Inp, L, R)
+
     ar = ReadInp(Inp)
 
-    for in_loop = 1:1
+    ## Decomposition
+    println("------------Decomposition Time -----------")
+    @time ar_new, idx_mat, SV = decomposition_SF2(ar, L)
 
-        ## constructing the incidence matrix corresponding to the original hypergraph
-        H = INC(ar)
+    idx = idx_mat[end]
+    ## Computing the effective resistance diameter of clusters and sort them
+    dict = Dict{Any, Any}()
+    @inbounds for jj =1:length(idx)
 
-        ## finding the hyperedges belonging to each node
-        NH = HyperNodes(ar)
+        vals = get!(Vector{Int}, dict, idx[jj])
 
-        ## find the number of nodes in hypergraph
-        mx = mxF(ar)
+        push!(vals, jj)
 
-        ## geenrate a binary array (Flag) for all the nodes in hypergraph
-        flag = falses(mx)
+    end # for jj
 
-        ## converting hypergraph to simple graph using Star expansion
-        MM = Star(ar)
+    KS = collect(keys(dict))
 
-        ## parameters
-        # changing these parameters allow you to generate different rresults
-        szT = 10
+    VL = collect(values(dict))
 
-        grow_lvl = 2
-
-        grownum = 100
-        ## end of parameters
-
-        ## generating 10 random vectors
-        RD = (rand(Float64, size(MM,1), 10) .- 0.5).*2
-
-        ## smoothing steps
-        k = 100
-
-        ## Filtering random vectors by applying k smoothing steps
-        SV = Filter(RD, k, MM, mx)
-
-        ## Computing hyperedge scores
-        Hscore = HSC(ar ,SV)
-
-        ## clustering the nodes within each hyperedge applying k-mean
-        idx_new = HEC(ar, SV)
-
-        fdz = findall(x->x==0, idx_new)
-
-        mx_idx = maximum(idx_new)
-
-        vec1 = collect(mx_idx + 1 : mx_idx + length(fdz))
-
-        idx_new[fdz] = vec1
-
-        ###### Clusters dictionary #########
-        dict = Dict{Any, Any}()
-
-        count = 0
-        for jj =1:length(idx_new)
-
-            vals = get!(Vector{Int}, dict, idx_new[jj])
-
-            push!(vals, jj)
-
-        end # for jj
-
-        KS = collect(keys(dict))
-
-        VL = collect(values(dict))
-
-        ##############  end of dictionary clusters ######################
-
-        ##### Sort the clusters according to their sizes
-
-        szCL = zeros(Int, length(VL))
-
-        for ii = 1:length(VL)
-            szCL[ii] = length(VL[ii])
+    score = zeros(eltype(SV), length(VL))
+    @inbounds for i =1:length(VL)
+        nodes = VL[i]
+        for j in axes(SV, 2)
+            mx, mn = -Inf, +Inf
+            for node in nodes
+                x = SV[node, j]
+                mx = ifelse(x > mx, x, mx)
+                mn = ifelse(x < mn, x, mn)
+            end
+            score[i] += (mx - mn)^2
         end
+    end
 
-        spC1 = findall(x->x< szT, szCL)
-        #####
+    fdP = sortperm(score)
+    RT = round(Int, R * length(fdP))
+    fdC = fdP[1: RT]
 
-        flag2 = falses(length(idx_new))
+    CL1 = KS[fdC]
+    ## end of Computing the effective resistance diameter of clusters
 
-        idx2 = zeros(Int, length(idx_new))
+    ## flow-based
+    mx = mxF(ar_new)
+    grow_lvl=3
+    NH = HyperNodes(ar_new)
+    H = INC(ar_new)
+    flag2 = falses(mx)
+    val = 1
+    idx2 = zeros(Int, mx)
+    grownum=3
+    cond_thresh=1
 
-        val = 1
+    for ii = 1:length(fdC)
 
-        ## Flow-baed method
-        for ii = 1:length(spC1)
+        seedN = CL1[ii]
 
-            seedN = VL[spC1[ii]]
+        ## expanding the network around the seed nodes
+        nd = copy(seedN)
 
-            ## expanding the network around the seed nodes
-            nd = copy(seedN)
+        HE = Any[]
+
+        for ee = 1:grow_lvl
 
             HE = Any[]
 
-            for ee = 1:grow_lvl
+            for dd = 1:length(nd)
 
-                HE = Any[]
+                append!(HE, NH[nd[dd]])
 
-                for dd = 1:length(nd)
-
-                    append!(HE, NH[nd[dd]])
-
-                end
-
-                HE = sort(unique(HE))
-
-                new_nd = Any[]
-
-                for mm=1:length(HE)
-
-                    nnd = ar[HE[mm]]
-
-                    append!(new_nd, nnd)
-
-                end #end of mm
-
-                nd = sort(unique(new_nd))
-
-            end #end of grow_lvl
-
-            seedN2 = findall(x->in(x, seedN), nd)
-
-            IM = H[HE, nd]
-            #println("size(IM): ", size(IM))
-
-            IMt = sparse(IM')
-
-            ## d is node degree
-            d = vec(sum(IM,dims=1))
-
-            epsilon = 1.0
-
-            delta = 1.0
-
-            order = round.(Int, sum(IM, dims = 2))
-            order = order[:,1]
-
-
-            OneHop = get_immediate_neighbors(IM,IMt,seedN2)
-            Rmore = BestNeighbors(IM,d,seedN2,OneHop,grownum)
-            R = union(Rmore,seedN2)
-
-            Rs = findall(x->in(x,seedN2),R)  #Force
-
-            S, lcond = HyperLocal(IM,IMt,order,d,R,epsilon,delta,Rs,true)
-
-            volA = sum(d)
-
-            S_org = nd[S]
-
-            ## finding the not discovered nodes
-            fgs = flag2[S_org]
-
-            S_org2 = S_org[.!fgs]
-
-            if length(S_org2) > 10
-
-                S_org2 = S_org2[1:10]
             end
 
+            HE = sort(unique(HE))
 
-            if length(S_org2) > 0
+            new_nd = Any[]
 
-                S3 = findall(x->in(x, S_org2), nd)
+            for mm=1:length(HE)
 
-                condR,volR, cutR = tl_cond(IM,S3,d,delta,volA,order)
+                nnd = ar_new[HE[mm]]
+
+                append!(new_nd, nnd)
+
+            end #end of mm
+
+            nd = sort(unique(new_nd))
+
+        end #end of grow_lvl
+
+        seedN2 = findall(x->in(x, seedN), nd)
+
+        IM = H[HE, nd]
+
+        IMt = sparse(IM')
+
+        ## d is node degree
+        d = vec(sum(IM,dims=1))
+
+        epsilon = 1.0
+
+        delta = 1.0
+
+        order = round.(Int, sum(IM, dims = 2))
+        order = order[:,1]
+
+
+        OneHop = get_immediate_neighbors(IM,IMt,seedN2)
+        Rmore = BestNeighbors(IM,d,seedN2,OneHop,grownum)
+        R = union(Rmore,seedN2)
+        Rs = findall(x->in(x,seedN2),R)  #Force
+
+        S, lcond = HyperLocal(IM,IMt,order,d,R,epsilon,delta,Rs,true)
+
+        volA = sum(d)
+
+        S_org = nd[S]
+
+        ## finding the not discovered nodes
+        fgs = flag2[S_org]
+
+        S_org2 = S_org[.!fgs]
+
+        if length(S_org2) > 50
+
+            S_org2 = S_org2[1:50]
+        end
+
+
+        if length(S_org2) > 0
+
+            S3 = findall(x->in(x, S_org2), nd)
+
+            condR,volR, cutR = tl_cond(IM,S3,d,delta,volA,order)
+
+            if condR < cond_thresh
 
                 idx2[S_org2] .= val
 
@@ -181,93 +147,108 @@ function HyperSF(Inp)
 
                 val+=1
 
-            end#end of if S_org2
+            end
+
+        end#end of if S_org2
 
 
-        end #for ii
+    end #for ii
 
 
-        ## mappers
-        fdz2 = findall(x->x==0, idx2)
-        fdnz2 = findall(x->x!=0, idx2)
+    ## indexing the isolated nodes
+    fdz = findall(x-> x==0, idx2)
 
-        dict2 = Dict{Any, Any}()
+    fdnz = findall(x-> x!=0, idx2)
 
-        count = 0
-        for jj =1:length(fdz2)
+    V = vec(val:val+length(fdz)-1)
 
-            vals = get!(Vector{Int}, dict2, idx_new[fdz2[jj]])
+    idx2[fdz] = V
 
-            push!(vals, fdz2[jj])
+    push!(idx_mat, idx2)
 
-        end # for jj
+    ## Mapper
 
-        KS2 = collect(keys(dict2))
+    idx1 = 1:maximum(idx_mat[end])
 
-        VL2 = collect(values(dict2))
+    @inbounds for ii = length(idx_mat):-1:1
 
-        mx_idx2 = maximum(idx2[fdnz2])
+        idx1 = idx1[idx_mat[ii]]
 
-        ###### Clusters dictionary - final clusters #########
-        dict3 = Dict{Any, Any}()
-
-        count = 0
-        for jj =1:length(idx2)
-
-            vals = get!(Vector{Int}, dict3, idx2[jj])
-
-            push!(vals, jj)
-
-        end # for jj
-
-        KS3 = collect(keys(dict3))
-
-        VL3 = collect(values(dict3))
-
-        global szCL3 = zeros(Int, length(VL3))
-
-        for ii = 1:length(VL3)
-            szCL3[ii] = length(VL3[ii])
-        end
-
-        ##############  end of dictionary clusters ######################
-        val2 = 1
-
-        for ii = 1:length(VL2)
-
-            ps1 = VL2[ii]
-
-            idx2[ps1] .= val2 + mx_idx2
-
-            val2 +=1
-
-        end # for ii
-
-        ar_new = Any[]
-
-        for i =1:length(ar)
-
-            nd = ar[i]
-
-            new_nd = idx2[nd]
-
-            push!(ar_new, sort(unique(new_nd)))
+    end # for ii
 
 
-        end #end of for i
+    ## global conductance
 
-        ar_new = unique(ar_new)
+    ar = ar_org
 
-        ### removing hyperedges with cardinality of 1
-        HH = INC(ar_new)
-        ss = sum(HH, dims=2)
-        fd1 = findall(x->x==1, ss[:,1])
-        deleteat!(ar_new, fd1)
+    NH = HyperNodes(ar)
 
-        ar = ar_new
+    H = INC(ar)
+
+    order = vec(round.(Int, sum(H, dims = 2)))
+
+    vol_V = vec(round.(Int, sum(H, dims = 1)))
+
+    global Cvec = zeros(Float64, 0)
 
 
-    end
+    dict = Dict{Any, Any}()
 
-    return ar
-end
+    count = 0
+    @inbounds for jj =1:length(idx1)
+
+        vals = get!(Vector{Int}, dict, idx1[jj])
+
+        push!(vals, jj)
+
+    end # for jj
+
+    KS = collect(keys(dict))
+
+    VL = collect(values(dict))
+
+    global szCL_HE = zeros(Int, length(VL))
+
+    ndV = collect(1:mxF(ar))
+
+    @inbounds for ii = 1:length(KS)
+
+        S = VL[ii]
+
+        szCL_HE[ii] = length(S)
+
+        ct = tl_cut(H, vec(S), 1.0, order)
+
+        vol1 = sum(vol_V[S])
+
+        S_hat = deleteat!(ndV, S)
+
+        vol2 = sum(vol_V[S_hat])
+
+        cnd = ct / vol1
+
+        push!(Cvec, cnd)
+
+        ndV = collect(1:mxF(ar))
+
+
+    end # for ii
+
+
+    NR = (mx_org - maximum(idx1)) / mx_org *100
+
+    #ER = (LN_org - length(ar_new)) / LN_org *100
+
+    println("NR = ", NR)
+
+    #println("ER = ", ER)
+
+    println("average conductance: ", round(mean(Cvec), digits=2))
+
+
+    #Whgr("ibm05_t1.hgr", ar_new)
+
+    return idx1
+
+
+end # function
