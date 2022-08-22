@@ -23,7 +23,7 @@ filename = "ibm01.hgr"
 L = 4
 
 ## R adjusts the ratio of selected clusters (low-quality clusters)
-# for applying the flow-based technique
+# for applying the flow-based technique (0<R<=1)
 R = .1
 
 ## IDN is the index cluster that is assigned to each node
