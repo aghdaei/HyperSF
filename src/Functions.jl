@@ -67,14 +67,13 @@ function mxF(ar)
 
 end
 
-## Input: hypergraph array
+## Input: hypergraph array, hyperedge weights
 # Output: sparse simple graph
-function Star(ar)
+function StarW(ar, W)
 
     mx = mxF(ar)
 
     sz = length(ar)
-
     col = zeros(Int32, 0)
     val = zeros(Float32, 0)
     row = zeros(Int32, 0)
@@ -82,7 +81,7 @@ function Star(ar)
     for iter =1:length(ar)
         LN = length(ar[iter])
         cc = (iter+mx) * ones(Int, LN)
-        vv = (1/LN) * ones(Int, LN)
+        vv = (W[iter]/LN) * ones(Int, LN)
 
         rr = ar[iter]
         append!(col, cc)
@@ -100,12 +99,12 @@ function Star(ar)
 
 end
 
+
 ## Input: a set of random vectors, smoothing steps, star matrix, number of nodes in hypergraph
 # index of the first selected smoothed vector, interval among the selected smoothed vectors, total number of smoothed vectors
 # Output: a set of smoothed vectors
 function Filter(rv, k, AD, mx, initial, interval, Ntot)
 
-    
     sz = size(AD, 1)
 
     V = zeros(mx, Ntot);
