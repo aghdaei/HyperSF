@@ -8,14 +8,15 @@ using StatsBase
 
 include("HyperSF.jl")
 
-Input = "../data/ibm01.hgr"
+filename = "ibm01.hgr"
 
-ar_coarse = HyperSF(Input)
+## L controls the coarsening ratio by applying L-levels of k-mean clustering
+L = 4
 
-# The incidence matrix corresponding to the coarsened hypergraph
-H = INC(ar_coarse)
+## R adjusts the ratio of selected clusters (low-quality clusters)
+# for applying the flow-based technique
+R = .1
 
+## IDN is the index cluster that is assigned to each node
+IDN = HyperSF(filename, L, R)
 
-## Generate the output hypergraph in hMetis format
-# First line: #hyperedges, #nodes
-Whgr("Output.hgr", ar_coarse)
