@@ -11,7 +11,7 @@ function HyperSF(Inp, L, R)
     mx = mxF(ar_org)
 
     ## Decomposition
-    ar_new, idx_mat, SV = decomposition_SF2(ar, L)
+    ar_new, idx_mat, SV = decomposition(ar, L)
 
     idx = idx_mat[end]
     ## Computing the effective resistance diameter of clusters and sort them
