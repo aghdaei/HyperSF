@@ -210,7 +210,7 @@ function decomposition(ar, L)
 
     W = ones(Float64, length(ar))
 
-    @time @inbounds for loop = 1:L
+    @inbounds for loop = 1:L
 
         mx = mxF(ar)
 
