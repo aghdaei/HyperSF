@@ -19,7 +19,7 @@ L = 4
 # for applying the flow-based technique (0<R<=1)
 R = .1
 
-## IDN is the index cluster that is assigned to each node
+## IDN is the index cluster that is assigned to each node.
 IDN = HyperSF(filename, L, R)
 
 
