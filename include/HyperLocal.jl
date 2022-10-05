@@ -21,7 +21,6 @@
 #SOFTWARE.
 
 
-
 # Strongly-local code for minimizing the HCL objective
 # Implemented with the thresholded linear hyperedge splitting penalty.
 
@@ -41,7 +40,6 @@ R:          Set of nodes in seed/reference set
 epsilon:    Locality parameter, must exceed vol(R)/vol(bar{R})
 delta:      Threshold cut penalty.
 """
-#S, lcond = HyperLocal(IM,IMt,order,d,R,epsilon,delta,Rs,true)
 function HyperLocal(H::SparseMatrixCSC{Float64,Int64},Ht::SparseMatrixCSC{Float64,Int64},
     order::Vector{Int64},d::Vector{Float64},R::Vector{Int64},
     epsilon::Float64, delta::Float64,Rs_local::Vector{Int64},localflag::Bool=true)
@@ -54,25 +52,20 @@ function HyperLocal(H::SparseMatrixCSC{Float64,Int64},Ht::SparseMatrixCSC{Float6
     Rstrong = R[Rs_local]
     # Check Locality Parameter
     fR = volR/(volA - volR)
-    #@show fR, volR, volA
+    @show fR, volR, volA
     if epsilon < fR
-
-        #println("Locality parameter epsilon was set too small.
-        #Setting it to lower bound of $fR. Computations will not be local.")
-
+        println("Locality parameter epsilon was set too small.
+        Setting it to lower bound of $fR. Computations will not be local.")
         epsilon = fR
         localflag = false
     end
     A = 0; N = 0;
-
     if localflag
 
         if volA*epsilon/volR < 10
-            #=
             println("Note that vol(R)/epsilon = O(vol(G)).
             For these parameters \nit may be faster to run the algorithm
             without the locality setting.")
-            =#
         end
 
     else
@@ -88,13 +81,13 @@ function HyperLocal(H::SparseMatrixCSC{Float64,Int64},Ht::SparseMatrixCSC{Float6
     nR = length(R)
 
     condR,volR, cutR = tl_cond(H,R,d,delta,volA,order)
-    #=
+
     println("\nRunning HyperLocal")
     println("----------------------------------------")
     println("Epsilon = $epsilon \t Delta = $delta")
     println("|R| = $nR, cond(R) = $condR")
     println("-------------------------------------------------------------------------")
-    =#
+
     S_best = R
     a_best = condR
     a_old = condR
@@ -106,7 +99,6 @@ function HyperLocal(H::SparseMatrixCSC{Float64,Int64},Ht::SparseMatrixCSC{Float6
 
         stepstart = time()
         if localflag
-            #ashkan, this is what we want
             S_new = HyperLocal_Step(H,Ht,order,R,Rn,a_best,epsilon,delta,d,Rs_local)
         else
             S_new = HLC_Step(A,R,Rc,a_best,epsilon,N,d,n,Rs_local)
@@ -121,10 +113,10 @@ function HyperLocal(H::SparseMatrixCSC{Float64,Int64},Ht::SparseMatrixCSC{Float6
             nS = length(S_best)
             a_old = a_new
             a_best = a_new
-            #println("Iter $Iteration: |S| = $nS, lcond(S) = $a_new, min-cut took $stime seconds")
+            println("Iter $Iteration: |S| = $nS, lcond(S) = $a_new, min-cut took $stime seconds")
         else
-            #println("Iter $Iteration: Algorithm converged. Last min-cut took $stime sec")
-            #println("-------------------------------------------------------------------------")
+            println("Iter $Iteration: Algorithm converged. Last min-cut took $stime sec")
+            println("-------------------------------------------------------------------------")
         end
         Iteration += 1
     end
@@ -135,8 +127,6 @@ end
 
 # A non-local version of the min-cut code that works by calling the same
 # subroutine, but on the entire graph all at once
-
-#S_local = HLC_Step(A_L,C_local,I_local,alpha,epsilon,N_L,d[Local2Global],n_L,Rstrong_local)
 function HLC_Step(A::SparseMatrixCSC{Float64,Int64},R::Vector{Int64},Rbar::Vector{Int64},
     alpha::Float64, epsilon::Float64, N::Int64, d::Vector{Float64},n::Int64,Rs_local::Vector{Int64})
 
@@ -154,11 +144,8 @@ function HLC_Step(A::SparseMatrixCSC{Float64,Int64},R::Vector{Int64},Rbar::Vecto
         return S
 end
 
-
 # Strongly-local subroutine for computing a minimum s-t cut
 # This uses the thresholded linear splitting function for each hyperegde
-
-#S_new = HyperLocal_Step(H,Ht,order,R,Rn,a_best,epsilon,delta,d,Rs_local)
 function HyperLocal_Step(H::SparseMatrixCSC{Float64,Int64},Ht::SparseMatrixCSC{Float64,Int64},
     order::Vector{Int64}, R::Vector{Int64},Rn::Vector{Int64},alpha::Float64,
     epsilon::Float64,delta::Float64,d::Vector{Float64},Rs_local::Vector{Int64})
